@@ -1,1 +1,151 @@
 
+import time
+import random
+import string
+
+# Function to normalize phone numbers
+def normalize_phone(phone):
+    if not phone:
+        return ""
+
+    digits = ''.join(ch for ch in str(phone) if ch.isdigit())
+
+    if digits.startswith("91") and len(digits) == 12:
+        digits = digits[2:]
+
+    return digits
+
+
+# Function to normalize names
+def normalize_name(name):
+    if not name:
+        return ""
+
+    return " ".join(name.lower().strip().split())
+
+
+# Function to merge contacts
+def merge_contacts(contacts):
+
+    merged = {}
+
+    for contact in contacts:
+
+        name = normalize_name(contact.get("name", ""))
+        phone = normalize_phone(contact.get("phone", ""))
+        email = contact.get("email", "").strip().lower()
+
+        # Skip contacts without a phone number
+        if not phone:
+            continue
+
+        # Create dictionary entry if not present
+        if phone not in merged:
+            merged[phone] = {
+                "names": set(),
+                "phones": set(),
+                "emails": set()
+            }
+
+        # Add unique details
+        if name:
+            merged[phone]["names"].add(name)
+
+        merged[phone]["phones"].add(phone)
+
+        if email:
+            merged[phone]["emails"].add(email)
+
+    return merged
+
+
+# Function to display contacts
+def display_contacts(merged):
+
+    print("\nMERGED CONTACT LIST")
+    print("-" * 45)
+
+    for phone, details in merged.items():
+
+        print("Names:", ", ".join(sorted(details["names"])))
+        print("Phone Numbers:", ", ".join(sorted(details["phones"])))
+        print("Emails:", ", ".join(sorted(details["emails"])))
+        print("-" * 45)
+
+
+# Small test data
+contacts = [
+    {
+        "name": "Dr. Ravi",
+        "phone": "+91 98400 12345",
+        "email": "ravi@gmail.com"
+    },
+    {
+        "name": "ravi kumar",
+        "phone": "9840012345",
+        "email": "ravi@gmail.com"
+    },
+    {
+        "name": "Anu",
+        "phone": "98765-43210",
+        "email": "anu@gmail.com"
+    },
+    {
+        "name": "Anu",
+        "phone": "+91 9876543210",
+        "email": "anu2@gmail.com"
+    },
+    {
+        "name": "Kumar",
+        "phone": "",
+        "email": "kumar@gmail.com"
+    },
+    {
+        "name": "",
+        "phone": "9123456789",
+        "email": ""
+    }
+]
+
+# Merge and display small contact list
+result = merge_contacts(contacts)
+display_contacts(result)
+
+
+# Performance testing
+def generate_contacts(n):
+
+    data = []
+
+    for i in range(n):
+        number = str(9000000000 + (i % max(1, n // 2)))
+
+        data.append({
+            "name": "Person " + str(i),
+            "phone": number,
+            "email": "person" + str(i) + "@gmail.com"
+        })
+
+    return data
+
+
+print("\nPERFORMANCE TESTING")
+print("-" * 45)
+
+for size in [1000, 100000]:
+
+    test_data = generate_contacts(size)
+
+    start = time.perf_counter()
+
+    merged_result = merge_contacts(test_data)
+
+    end = time.perf_counter()
+
+    elapsed = end - start
+
+    print("Input Contacts:", size)
+    print("Merged Contacts:", len(merged_result))
+    print("Execution Time:", round(elapsed, 6), "seconds")
+    print("-" * 45)
+
