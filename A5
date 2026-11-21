@@ -1,1 +1,352 @@
 
+import sqlite3
+import time
+import re
+import random
+from collections import Counter
+
+# -----------------------------------
+# B4.1 - SENTIMENT ANALYSER
+# -----------------------------------
+
+POSITIVE = {"good", "clean", "fast", "helpful", "improved"}
+NEGATIVE = {"bad", "dirty", "slow", "rude", "smoke", "broken"}
+NEGATORS = {"not", "never", "no"}
+
+def score(text):
+    words = text.lower().replace(".", " ").replace(",", " ").split()
+    total = 0
+
+    for i, word in enumerate(words):
+        value = 1 if word in POSITIVE else -1 if word in NEGATIVE else 0
+
+        if i > 0 and words[i - 1] in NEGATORS:
+            value = -value
+
+        total += value
+
+    return total
+
+
+def label(text):
+    s = score(text)
+
+    return "positive" if s > 0 else "negative" if s < 0 else "neutral"
+
+
+# -----------------------------------
+# 50 SAMPLE COMPLAINTS
+# -----------------------------------
+
+complaints = [
+    "Roads are clean and the bus was fast.",
+    "Smoke from the factory, air is bad.",
+    "The staff were not helpful.",
+    "Not bad, service improved.",
+    "The station is clean and good.",
+    "Buses are slow and dirty.",
+    "Staff are helpful and friendly.",
+    "The road is broken and dirty.",
+    "Transport service is fast.",
+    "The bus service is not good.",
+    "The station is clean.",
+    "Air pollution and smoke are bad.",
+    "The workers are rude.",
+    "The service is improved and helpful.",
+    "The road is not clean.",
+    "Buses are fast and good.",
+    "The station is dirty and broken.",
+    "Staff are not rude.",
+    "The transport service is slow.",
+    "The road condition is good.",
+    "The bus is not slow.",
+    "The factory produces smoke.",
+    "The staff are helpful.",
+    "The station is not clean.",
+    "The service is bad and slow.",
+    "Roads are improved and clean.",
+    "The bus is broken.",
+    "The staff are not helpful.",
+    "Transport is fast and improved.",
+    "The air is dirty and bad.",
+    "The station workers are good.",
+    "The bus service is not bad.",
+    "Roads are broken and slow.",
+    "The staff are rude and not helpful.",
+    "The station is clean and improved.",
+    "The bus is fast and helpful.",
+    "The factory smoke is bad.",
+    "The road is clean.",
+    "The transport service is not slow.",
+    "The staff are good and helpful.",
+    "The station is broken and dirty.",
+    "The service is improved.",
+    "The bus is slow and bad.",
+    "The roads are not dirty.",
+    "The staff are not rude.",
+    "The transport is good and fast.",
+    "The station is not helpful.",
+    "The road is broken.",
+    "The service is clean and good.",
+    "The buses are dirty and slow."
+]
+
+# Manually assigned reference labels for comparison
+actual_labels = [
+    "positive", "negative", "negative", "positive",
+    "positive", "negative", "positive", "negative",
+    "positive", "negative", "positive", "negative",
+    "negative", "positive", "negative", "positive",
+    "negative", "positive", "negative", "positive",
+    "positive", "negative", "positive", "negative",
+    "negative", "positive", "negative", "negative",
+    "positive", "negative", "positive", "positive",
+    "negative", "negative", "positive", "positive",
+    "negative", "positive", "positive", "positive",
+    "negative", "positive", "negative", "positive",
+    "positive", "positive", "negative", "negative",
+    "positive", "negative"
+]
+
+print("B4.1 - SENTIMENT ANALYSIS")
+print("-" * 55)
+
+agree = 0
+wrong = []
+
+for i, complaint in enumerate(complaints):
+    predicted = label(complaint)
+
+    if predicted == actual_labels[i]:
+        agree += 1
+    else:
+        wrong.append((complaint, predicted, actual_labels[i]))
+
+    print(predicted, "|", complaint)
+
+accuracy = agree / len(complaints) * 100
+
+print("\nTotal Complaints:", len(complaints))
+print("Correct Labels:", agree)
+print("Wrong Labels:", len(wrong))
+print("Agreement:", round(accuracy, 2), "%")
+
+print("\nIncorrectly Classified Complaints:")
+
+for complaint, predicted, actual in wrong:
+    print("Complaint:", complaint)
+    print("Predicted:", predicted)
+    print("Actual:", actual)
+
+
+# -----------------------------------
+# B4.1 - TEXT SUMMARISER
+# -----------------------------------
+
+STOPWORDS = {
+    "the", "is", "are", "was", "were", "and", "a",
+    "an", "of", "to", "in", "from", "not", "no",
+    "on", "this", "that", "it", "my", "with"
+}
+
+def important_summary(text, k=2):
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+
+    words = re.findall(r'\b[a-z]+\b', text.lower())
+
+    frequency = Counter(
+        word for word in words
+        if word not in STOPWORDS
+    )
+
+    ranked = sorted(
+        enumerate(sentences),
+        key=lambda item: sum(
+            frequency[word]
+            for word in re.findall(r'\b[a-z]+\b', item[1].lower())
+        ),
+        reverse=True
+    )
+
+    selected = sorted(ranked[:k], key=lambda item: item[0])
+
+    return " ".join(sentence for _, sentence in selected)
+
+
+def first_k_summary(text, k=2):
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+
+    return " ".join(sentences[:k])
+
+
+# Compare summaries on 50 complaints
+print("\nB4.1 - SUMMARY COMPARISON")
+print("-" * 55)
+
+important_quality = 0
+first_quality = 0
+
+for i, complaint in enumerate(complaints):
+
+    important = important_summary(complaint)
+    first = first_k_summary(complaint)
+
+    print("\nComplaint:", i + 1)
+    print("Important Words Summary:", important)
+    print("First K Summary:", first)
+
+    # Measure coverage of important non-stop words
+    words = set(re.findall(r'\b[a-z]+\b', complaint.lower()))
+    important_words = words - STOPWORDS
+
+    important_quality += len(
+        important_words.intersection(
+            set(re.findall(r'\b[a-z]+\b', important.lower()))
+        )
+    )
+
+    first_quality += len(
+        important_words.intersection(
+            set(re.findall(r'\b[a-z]+\b', first.lower()))
+        )
+    )
+
+print("\nImportant Summary Coverage:", important_quality)
+print("First K Summary Coverage:", first_quality)
+
+
+# -----------------------------------
+# B4.2 - DATABASE AND INDEX TEST
+# -----------------------------------
+
+print("\nB4.2 - DATABASE INDEX TEST")
+print("-" * 55)
+
+connection = sqlite3.connect(":memory:")
+cursor = connection.cursor()
+
+cursor.execute("""
+CREATE TABLE complaints (
+    id INTEGER PRIMARY KEY,
+    station TEXT,
+    day TEXT,
+    complaint TEXT
+)
+""")
+
+# Insert 50,000 complaints
+stations = [f"Station{i}" for i in range(1, 101)]
+
+data = []
+
+for i in range(50000):
+    station = stations[i % 100]
+    day = f"2026-11-{(i % 30) + 1:02d}"
+
+    data.append((
+        station,
+        day,
+        complaints[i % 50]
+    ))
+
+cursor.executemany("""
+INSERT INTO complaints (station, day, complaint)
+VALUES (?, ?, ?)
+""", data)
+
+connection.commit()
+
+query = """
+SELECT * FROM complaints
+WHERE station = ? AND day = ?
+"""
+
+parameters = ("Station10", "2026-11-10")
+
+
+# Measure query before indexing
+start = time.perf_counter()
+
+for i in range(100):
+    cursor.execute(query, parameters)
+    cursor.fetchall()
+
+before_time = time.perf_counter() - start
+
+print("Time Before Index:", round(before_time, 6), "seconds")
+
+
+# Create index
+cursor.execute("""
+CREATE INDEX idx_station_day
+ON complaints(station, day)
+""")
+
+connection.commit()
+
+
+# Measure query after indexing
+start = time.perf_counter()
+
+for i in range(100):
+    cursor.execute(query, parameters)
+    cursor.fetchall()
+
+after_time = time.perf_counter() - start
+
+print("Time After Index:", round(after_time, 6), "seconds")
+
+if after_time > 0:
+    improvement = (
+        (before_time - after_time) / before_time
+    ) * 100
+
+    print("Performance Improvement:",
+          round(improvement, 2), "%")
+
+
+# Check query execution plan
+cursor.execute("""
+EXPLAIN QUERY PLAN
+SELECT * FROM complaints
+WHERE station = 'Station10'
+AND day = '2026-11-10'
+""")
+
+print("\nQuery Execution Plan:")
+
+for row in cursor.fetchall():
+    print(row)
+
+
+# -----------------------------------
+# B4.3 - PRODUCTION DECISION
+# -----------------------------------
+
+print("\nB4.3 - FINAL ENGINEERING DECISION")
+print("-" * 55)
+
+print("1. Store complaints in an SQL database.")
+print("2. Create indexes on station and day.")
+print("3. Clean text and remove duplicate complaints.")
+print("4. Analyse complaints using sentiment scoring.")
+print("5. Generate summaries using important words.")
+print("6. Monitor model accuracy regularly.")
+
+print("\nProduction Decision:")
+
+if accuracy >= 80:
+    print("Simple sentiment scoring can be used as an initial")
+    print("baseline, with human review of uncertain complaints.")
+else:
+    print("A trained sentiment model and human review are recommended.")
+
+print("\nFinal Result:")
+print("Total Complaints Analysed:", len(complaints))
+print("Sentiment Agreement:", round(accuracy, 2), "%")
+print("Database Records:", 50000)
+print("Database Index: station + day")
+print("Summary Methods: Important Words vs First K Sentences")
+
+connection.close()
+
