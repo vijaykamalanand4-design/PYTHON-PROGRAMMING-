@@ -1,1 +1,61 @@
 
+# Constants
+FAT_STEP = 0.10
+APR_JUN_BASE_RATE = 32.00
+APR_JUN_FAT_RATE = 0.45
+BONUS_RATE = 0.50
+BONUS_LIMIT = 500.0
+
+# Function to calculate milk rate
+def calculate_rate(fat, snf, season):
+
+    if season == 1:
+        base_rate = APR_JUN_BASE_RATE
+        fat_rate = APR_JUN_FAT_RATE
+    else:
+        base_rate = 30.00
+        fat_rate = 0.40
+
+    fat_steps = int(fat / FAT_STEP)
+
+    return base_rate + (fat_steps * fat_rate)
+
+
+# Function to calculate bonus
+def calculate_bonus(litres):
+
+    if litres > BONUS_LIMIT:
+        return litres * BONUS_RATE
+    else:
+        return 0.0
+
+
+# Main program
+fat = float(input("Enter Fat value: "))
+snf = float(input("Enter SNF value: "))
+litres = float(input("Enter total litres supplied in 10 days: "))
+
+print("\nSelect Season:")
+print("1. April to June")
+print("2. Other Seasons")
+
+season = int(input("Enter season choice: "))
+
+if fat < 0 or snf < 0 or litres < 0 or season not in (1, 2):
+    print("Invalid Input")
+
+else:
+    milk_rate = calculate_rate(fat, snf, season)
+
+    bonus = calculate_bonus(litres)
+
+    total_amount = (milk_rate * litres) + bonus
+
+    print("\n----- MILK ANALYSIS REPORT -----")
+    print("Fat:", format(fat, ".2f"))
+    print("SNF:", format(snf, ".2f"))
+    print("Milk Rate: Rs.", format(milk_rate, ".2f"))
+    print("Total Litres:", format(litres, ".2f"))
+    print("Bonus: Rs.", format(bonus, ".2f"))
+    print("Total Amount: Rs.", format(total_amount, ".2f"))
+
