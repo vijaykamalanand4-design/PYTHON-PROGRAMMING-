@@ -1,1 +1,67 @@
 
+import time
+import math
+
+# Original prime checking method
+def original_prime(n):
+    count = 0
+
+    if n < 2:
+        return False, count
+
+    for i in range(2, n):
+        count += 1
+
+        if n % i == 0:
+            return False, count
+
+    return True, count
+
+
+# Redesigned prime checking method
+def redesigned_prime(n):
+    count = 0
+
+    if n < 2:
+        return False, count
+
+    i = 2
+
+    while i * i <= n:
+        count += 1
+
+        if n % i == 0:
+            return False, count
+
+        i += 1
+
+    return True, count
+
+
+# Main program
+numbers = [101, 1009, 10007, 100003, 1000003]
+
+print("PRIME NUMBER PROGRAM COMPARISON")
+print("-" * 75)
+print("Number\tOriginal Checks\tNew Checks\tOriginal Time\tNew Time")
+
+for n in numbers:
+
+    start = time.perf_counter()
+    result1, checks1 = original_prime(n)
+    time1 = time.perf_counter() - start
+
+    start = time.perf_counter()
+    result2, checks2 = redesigned_prime(n)
+    time2 = time.perf_counter() - start
+
+    print(n, "\t", checks1, "\t\t", checks2,
+          "\t\t", round(time1 * 1000000, 2),
+          "us\t", round(time2 * 1000000, 2), "us")
+
+    # Validate both results
+    if result1 == result2:
+        print("Validation: PASS")
+    else:
+        print("Validation: FAIL")
+
